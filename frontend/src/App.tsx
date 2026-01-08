@@ -9,6 +9,7 @@ import {
 import StockChart from './components/StockChart';
 import StockSelector from './components/StockSelector';
 import DateRangePicker from './components/DateRangePicker';
+import AIStockAgent from './components/AIStockAgent';
 import { stockService } from './services/stock.service';
 import type { StockDataPoint, DateRange } from './types/stock.types';
 
@@ -100,6 +101,11 @@ function App() {
           error={error}
         />
       </Paper>
+
+      <AIStockAgent
+        selectedStocks={selectedStocks}
+        dateRange={dateRange}
+      />
     </Container>
   );
 }
