@@ -8,6 +8,7 @@ import {
   CircularProgress,
   Divider,
 } from '@mui/material';
+import ReactMarkdown from 'react-markdown';
 import { aiService } from '../services/ai.service';
 import type { DateRange } from '../types/stock.types';
 
@@ -147,11 +148,69 @@ export default function AIStockAgent({
             sx={{
               p: 2,
               backgroundColor: 'grey.50',
-              whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
+              '& p': {
+                margin: '0.5em 0',
+                '&:first-of-type': {
+                  marginTop: 0,
+                },
+                '&:last-of-type': {
+                  marginBottom: 0,
+                },
+              },
+              '& ul, & ol': {
+                margin: '0.5em 0',
+                paddingLeft: '1.5em',
+              },
+              '& h1, & h2, & h3, & h4, & h5, & h6': {
+                margin: '0.75em 0 0.5em 0',
+                fontWeight: 'bold',
+                '&:first-of-type': {
+                  marginTop: 0,
+                },
+              },
+              '& code': {
+                backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                padding: '0.2em 0.4em',
+                borderRadius: '3px',
+                fontFamily: 'monospace',
+                fontSize: '0.9em',
+              },
+              '& pre': {
+                backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                padding: '1em',
+                borderRadius: '4px',
+                overflow: 'auto',
+                '& code': {
+                  backgroundColor: 'transparent',
+                  padding: 0,
+                },
+              },
+              '& blockquote': {
+                borderLeft: '4px solid',
+                borderColor: 'primary.main',
+                paddingLeft: '1em',
+                margin: '1em 0',
+                fontStyle: 'italic',
+                color: 'text.secondary',
+              },
+              '& table': {
+                width: '100%',
+                borderCollapse: 'collapse',
+                margin: '1em 0',
+                '& th, & td': {
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  padding: '0.5em',
+                },
+                '& th': {
+                  backgroundColor: 'action.hover',
+                  fontWeight: 'bold',
+                },
+              },
             }}
           >
-            <Typography variant="body1">{answer}</Typography>
+            <ReactMarkdown>{answer}</ReactMarkdown>
           </Paper>
         </Box>
       )}
