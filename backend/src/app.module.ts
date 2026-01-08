@@ -2,7 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { StocksModule } from './stocks/stocks.module';
+import { StocksModule } from './modules/stocks/stocks.module';
+import { AIModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { StocksModule } from './stocks/stocks.module';
       isGlobal: true,
     }),
     StocksModule,
+    AIModule,
   ],
   controllers: [AppController],
   providers: [AppService],

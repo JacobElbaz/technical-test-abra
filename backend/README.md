@@ -37,10 +37,14 @@ Create a `.env` file in the backend directory with the following variables:
 
 ```env
 TWELVE_DATA_API_KEY=your_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
 PORT=3000
 ```
 
-Get your free API key at [https://twelvedata.com/](https://twelvedata.com/)
+- Get your free Twelve Data API key at [https://twelvedata.com/](https://twelvedata.com/)
+- Get your Gemini API key at [https://ai.google.dev/](https://ai.google.dev/) (Google AI Studio)
+- `GEMINI_MODEL` is optional (defaults to `gemini-2.5-flash`). You can also use `gemini-2.5-pro` for more advanced analysis
 
 ## Compile and run the project
 
