@@ -2,6 +2,13 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import {
+  eachDayOfInterval,
+  eachWeekOfInterval,
+  eachMonthOfInterval,
+  format,
+  parse,
+} from 'date-fns';
 import { SearchResponse, TwelveDataResponse, StockDataPoint } from './interface/stocks.interface';
 
 @Injectable()
@@ -64,33 +71,6 @@ export class StocksService {
   }
 
   /**
-   * Generate all dates between startDate and endDate (inclusive)
-   */
-  private generateDateRange(startDate: string, endDate: string): string[] {
-    const dates: string[] = [];
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    // Set time to midnight to avoid timezone issues
-    start.setHours(0, 0, 0, 0);
-    end.setHours(0, 0, 0, 0);
-
-    const currentDate = new Date(start);
-    
-    while (currentDate <= end) {
-      const year = currentDate.getFullYear();
-      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const day = String(currentDate.getDate()).padStart(2, '0');
-      dates.push(`${year}-${month}-${day}`);
-      
-      // Move to next day
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return dates;
-  }
-
-  /**
    * Fetch stock data from Twelve Data API
    */
   private async fetchStockData(
@@ -142,71 +122,107 @@ export class StocksService {
 
   /**
    * Merge stock data by date for Recharts format
-   * Generates all dates in the range and applies forward fill for missing dates
+   * Generates reference dates based on interval using date-fns and applies forward fill for missing dates
    */
   private mergeStockData(
     stocksData: Array<{ symbol: string; data: TwelveDataResponse }>,
     startDate: string,
     endDate: string,
+    interval: string,
   ): StockDataPoint[] {
-    // Generate all dates in the range
-    const allDates = this.generateDateRange(startDate, endDate);
-    const dateMap = new Map<string, StockDataPoint>();
+    // Parse start and end dates
+    const start = parse(startDate, 'yyyy-MM-dd', new Date());
+    const end = parse(endDate, 'yyyy-MM-dd', new Date());
 
-    // Initialize all dates in the range
-    allDates.forEach((date) => {
-      dateMap.set(date, { date });
-    });
+    // Generate reference dates based on interval using date-fns
+    let referenceDates: Date[];
+    if (interval === '1day') {
+      referenceDates = eachDayOfInterval({ start, end });
+    } else if (interval === '1week') {
+      referenceDates = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+    } else if (interval === '1month') {
+      referenceDates = eachMonthOfInterval({ start, end });
+    } else {
+      // Fallback to daily if interval is unknown
+      referenceDates = eachDayOfInterval({ start, end });
+    }
+
+    // Format dates to YYYY-MM-DD
+    const formattedDates = referenceDates.map((date) =>
+      format(date, 'yyyy-MM-dd'),
+    );
+
+    // Create a Map to index API data by date for quick access
+    // Map<date, Map<symbol, value>>
+    const apiDataMap = new Map<string, Map<string, number>>();
 
     // Extract symbols from stocksData
     const symbols = stocksData.map(({ symbol }) => symbol);
 
-    // Fill in data from API responses
+    // Fill the API data map
     stocksData.forEach(({ symbol, data }) => {
       if (data.values && Array.isArray(data.values)) {
         data.values.forEach((value) => {
-          // Extract date part from datetime (format: "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DD")
-          const date = value.datetime.includes(' ')
+          // Extract date part from datetime (format: "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DD")
+          const apiDate = value.datetime.includes(' ')
             ? value.datetime.split(' ')[0]
             : value.datetime;
 
           // Validate date format
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(apiDate)) {
             console.warn(`Invalid date format: ${value.datetime}`);
             return;
           }
 
-          // Only process dates within our range
-          if (dateMap.has(date)) {
-            const closePrice = parseFloat(value.close);
-            if (!isNaN(closePrice)) {
-              dateMap.get(date)![symbol] = closePrice;
-            }
+          // Store the value in the map
+          if (!apiDataMap.has(apiDate)) {
+            apiDataMap.set(apiDate, new Map<string, number>());
+          }
+
+          const closePrice = parseFloat(value.close);
+          if (!isNaN(closePrice)) {
+            apiDataMap.get(apiDate)!.set(symbol, closePrice);
           }
         });
       }
     });
 
-    // Apply forward fill: for each date without data, use the last known value
-    const sortedDates = Array.from(dateMap.keys()).sort((a, b) =>
-      a.localeCompare(b),
-    );
+    // Initialize result map with all reference dates
+    const resultMap = new Map<string, StockDataPoint>();
+    formattedDates.forEach((date) => {
+      resultMap.set(date, { date });
+    });
 
-    // Track last known value for each symbol
+    // For each reference date, check if API has a value for this exact date
+    formattedDates.forEach((date) => {
+      const dataPoint = resultMap.get(date)!;
+      const apiValues = apiDataMap.get(date);
+
+      if (apiValues) {
+        // API has data for this date, use it
+        symbols.forEach((symbol) => {
+          const value = apiValues.get(symbol);
+          if (value !== undefined) {
+            dataPoint[symbol] = value;
+          }
+        });
+      }
+      // If no API data for this date, leave undefined temporarily (will be filled with forward fill)
+    });
+
+    // Apply forward fill: for each date without value, use the last known value
     const lastKnownValues = new Map<string, number>();
 
-    sortedDates.forEach((date) => {
-      const dataPoint = dateMap.get(date)!;
+    formattedDates.forEach((date) => {
+      const dataPoint = resultMap.get(date)!;
 
       symbols.forEach((symbol) => {
-        if (
-          dataPoint[symbol] !== undefined &&
-          typeof dataPoint[symbol] === 'number'
-        ) {
+        const currentValue = dataPoint[symbol];
+        if (currentValue !== undefined && typeof currentValue === 'number') {
           // Update last known value for this symbol
-          lastKnownValues.set(symbol, dataPoint[symbol] as number);
+          lastKnownValues.set(symbol, currentValue);
         } else if (lastKnownValues.has(symbol)) {
-          // Apply forward fill: use last known value
+          // Apply forward fill: use last known value (last trading day)
           const lastValue = lastKnownValues.get(symbol);
           if (lastValue !== undefined) {
             dataPoint[symbol] = lastValue;
@@ -217,7 +233,7 @@ export class StocksService {
     });
 
     // Return sorted array (already sorted by date)
-    return sortedDates.map((date) => dateMap.get(date)!);
+    return formattedDates.map((date) => resultMap.get(date)!);
   }
 
   /**
@@ -245,7 +261,7 @@ export class StocksService {
       const stocksData = await Promise.all(fetchPromises);
 
       // Merge data by date with forward fill for missing dates
-      return this.mergeStockData(stocksData, startDate, endDate);
+      return this.mergeStockData(stocksData, startDate, endDate, interval);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
