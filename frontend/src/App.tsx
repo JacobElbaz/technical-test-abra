@@ -64,33 +64,36 @@ function App() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box mb={4}>
-        <Typography variant="h4" component="h1" gutterBottom>
+    <Container maxWidth="lg" sx={{ py: 2 }}>
+      <Box mb={2}>
+        <Typography variant="h5" component="h1" gutterBottom>
           Stock Market Trends
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body2" color="text.secondary">
           Compare stock performance over time
         </Typography>
       </Box>
 
-      <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-        <StockSelector
-          selectedStocks={selectedStocks}
-          onChange={handleStocksChange}
-        />
+      <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
+        <Box display="flex" gap={2} flexDirection={{ xs: 'column', md: 'row' }}>
+          <Box flex={1}>
+            <StockSelector
+              selectedStocks={selectedStocks}
+              onChange={handleStocksChange}
+            />
+          </Box>
+          <Box flex={1}>
+            <DateRangePicker dateRange={dateRange} onChange={handleDateRangeChange} />
+          </Box>
+        </Box>
       </Paper>
 
-      <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-        <DateRangePicker dateRange={dateRange} onChange={handleDateRangeChange} />
-      </Paper>
-
-      <Paper elevation={2} sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
+      <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
+        <Typography variant="subtitle1" gutterBottom>
           Stock Performance Chart
         </Typography>
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mb: 1.5 }}>
             {error}
           </Alert>
         )}

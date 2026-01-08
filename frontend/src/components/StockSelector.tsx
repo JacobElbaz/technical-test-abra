@@ -105,12 +105,13 @@ export default function StockSelector({
 
   return (
     <Box>
-      <Typography variant="subtitle1" gutterBottom>
+      <Typography variant="subtitle2" gutterBottom>
         Select Stocks
       </Typography>
-      <Box ref={containerRef} position="relative" sx={{ mt: 1 }}>
+      <Box ref={containerRef} position="relative" sx={{ mt: 0.5 }}>
         <TextField
           fullWidth
+          size="small"
           placeholder="Search for stocks (e.g., AAPL, MSFT) or type symbol and press Enter"
           variant="outlined"
           value={searchQuery}
@@ -179,11 +180,12 @@ export default function StockSelector({
         )}
       </Box>
       {selectedStocks.length > 0 && (
-        <Box mt={2} display="flex" flexWrap="wrap" gap={1}>
+        <Box mt={1} display="flex" flexWrap="wrap" gap={0.5}>
           {selectedStocks.map((symbol) => (
             <Chip
               key={symbol}
               label={symbol}
+              size="small"
               onDelete={
                 symbol === 'SPY' ? undefined : () => handleRemoveStock(symbol)
               }

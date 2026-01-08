@@ -41,16 +41,16 @@ export default function StockChart({
         display="flex"
         justifyContent="center"
         alignItems="center"
-        minHeight="400px"
+        minHeight="300px"
       >
-        <CircularProgress />
+        <CircularProgress size={24} />
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box p={2}>
+      <Box p={1.5}>
         <Alert severity="error">{error}</Alert>
       </Box>
     );
@@ -62,9 +62,9 @@ export default function StockChart({
         display="flex"
         justifyContent="center"
         alignItems="center"
-        minHeight="400px"
+        minHeight="300px"
       >
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body2" color="text.secondary">
           No data available
         </Typography>
       </Box>
@@ -82,9 +82,9 @@ export default function StockChart({
         display="flex"
         justifyContent="center"
         alignItems="center"
-        minHeight="400px"
+        minHeight="300px"
       >
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body2" color="text.secondary">
           No data available for selected stocks
         </Typography>
       </Box>
@@ -92,7 +92,7 @@ export default function StockChart({
   }
 
   return (
-    <Box sx={{ width: '100%', height: '500px', mt: 2 }}>
+    <Box sx={{ width: '100%', height: '350px', mt: 1 }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" />

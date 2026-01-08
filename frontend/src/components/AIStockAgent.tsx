@@ -68,30 +68,31 @@ export default function AIStockAgent({
   };
 
   return (
-    <Paper elevation={2} sx={{ p: 3, mt: 3 }}>
-      <Typography variant="h6" gutterBottom>
+    <Paper elevation={2} sx={{ p: 2, mt: 0 }}>
+      <Typography variant="subtitle1" gutterBottom>
         AI Stock Agent
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Ask AI-powered questions about your stock data
       </Typography>
 
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: 2 }}>
         <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
           Pre-defined Questions:
         </Typography>
         {PREDEFINED_QUESTIONS.map((question) => (
-          <Box key={question.id} sx={{ mb: 2 }}>
+          <Box key={question.id} sx={{ mb: 1 }}>
             <Button
               variant="outlined"
+              size="small"
               fullWidth
               onClick={() => handleQuestionClick(question.text)}
               disabled={loading || selectedStocks.length === 0}
               sx={{
                 textAlign: 'left',
                 justifyContent: 'flex-start',
-                py: 1.5,
-                px: 2,
+                py: 1,
+                px: 1.5,
                 textTransform: 'none',
               }}
             >
@@ -113,24 +114,24 @@ export default function AIStockAgent({
           display="flex"
           justifyContent="center"
           alignItems="center"
-          sx={{ py: 4 }}
+          sx={{ py: 2 }}
         >
-          <CircularProgress />
-          <Typography variant="body2" sx={{ ml: 2 }}>
+          <CircularProgress size={20} />
+          <Typography variant="body2" sx={{ ml: 1.5 }}>
             Analyzing stock data...
           </Typography>
         </Box>
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 1.5 }}>
           {error}
         </Alert>
       )}
 
       {answer && !loading && (
         <Box>
-          <Divider sx={{ my: 2 }} />
+          <Divider sx={{ my: 1.5 }} />
           <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
             AI Response:
           </Typography>
@@ -138,7 +139,7 @@ export default function AIStockAgent({
             <Typography
               variant="body2"
               color="text.secondary"
-              sx={{ mb: 2, fontStyle: 'italic' }}
+              sx={{ mb: 1.5, fontStyle: 'italic' }}
             >
               Question: {selectedQuestion}
             </Typography>
@@ -146,7 +147,7 @@ export default function AIStockAgent({
           <Paper
             variant="outlined"
             sx={{
-              p: 2,
+              p: 1.5,
               backgroundColor: 'grey.50',
               wordBreak: 'break-word',
               '& p': {

@@ -66,10 +66,10 @@ export default function DateRangePicker({
 
   return (
     <Box>
-      <Typography variant="subtitle1" gutterBottom>
+      <Typography variant="subtitle2" gutterBottom>
         Date Range
       </Typography>
-      <Box display="flex" gap={2} mt={1}>
+      <Box display="flex" gap={1.5} mt={0.5}>
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <DatePicker
             label="Start Date"
@@ -80,6 +80,7 @@ export default function DateRangePicker({
               textField: {
                 variant: 'outlined',
                 fullWidth: true,
+                size: 'small',
               },
             }}
           />
@@ -93,12 +94,13 @@ export default function DateRangePicker({
               textField: {
                 variant: 'outlined',
                 fullWidth: true,
+                size: 'small',
               },
             }}
           />
         </LocalizationProvider>
       </Box>
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
         Maximum range: 36 months
       </Typography>
     </Box>
