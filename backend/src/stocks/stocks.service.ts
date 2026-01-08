@@ -2,33 +2,7 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-
-interface TwelveDataResponse {
-  meta: {
-    symbol: string;
-    interval: string;
-    currency: string;
-    exchange_timezone: string;
-    exchange: string;
-    mic_code: string;
-    type: string;
-  };
-  values: Array<{
-    datetime: string;
-    open: string;
-    high: string;
-    low: string;
-    close: string;
-    volume: string;
-  }>;
-  status: string;
-  message?: string;
-}
-
-export interface StockDataPoint {
-  date: string;
-  [symbol: string]: string | number;
-}
+import { SearchResponse, TwelveDataResponse, StockDataPoint } from './interface/stocks.interface';
 
 @Injectable()
 export class StocksService {
@@ -217,5 +191,52 @@ export class StocksService {
       );
     }
   }
-}
 
+  /**
+   * Search for stocks by symbol or name
+   */
+  async searchStocks(query: string): Promise<
+    Array<{
+      symbol: string;
+      name: string;
+      exchange?: string;
+      type?: string;
+    }>
+  > {
+    if (!query || query.trim().length === 0) {
+      return [];
+    }
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<SearchResponse>(`${this.baseUrl}/symbol_search`, {
+          params: {
+            symbol: query.trim().toUpperCase(),
+            apikey: this.apiKey,
+          },
+        }),
+      );
+
+      if (response.data.status === 'error') {
+        // If API returns error, return empty array instead of throwing
+        return [];
+      }
+
+      // Twelve Data symbol_search returns array of symbols
+      const results = Array.isArray(response.data.data)
+        ? response.data.data
+        : [];
+
+      return results.map((item) => ({
+        symbol: item.symbol || item.instrument_name || '',
+        name: item.instrument_name || item.name || item.symbol || '',
+        exchange: item.exchange || item.mic_code || undefined,
+        type: item.type || undefined,
+      }));
+    } catch (error) {
+      // If search fails, return empty array (don't throw error)
+      console.warn('Stock search failed:', error);
+      return [];
+    }
+  }
+}

@@ -5,8 +5,9 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { StocksService, StockDataPoint } from './stocks.service';
+import { StocksService } from './stocks.service';
 import { GetStocksDto } from './dto/get-stocks.dto';
+import { StockDataPoint } from './interface/stocks.interface';
 
 @Controller('stocks')
 export class StocksController {
@@ -49,5 +50,22 @@ export class StocksController {
       );
     }
   }
-}
 
+  @Get('search')
+  async searchStocks(@Query('query') query: string) {
+    if (!query || query.trim().length === 0) {
+      return [];
+    }
+
+    try {
+      const results = await this.stocksService.searchStocks(query);
+      return results;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      // Return empty array on error instead of throwing
+      return [];
+    }
+  }
+}

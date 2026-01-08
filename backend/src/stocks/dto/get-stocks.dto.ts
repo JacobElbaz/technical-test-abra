@@ -9,7 +9,7 @@ export class GetStocksDto {
         .map((s) => s.trim().toUpperCase())
         .filter((s) => s.length > 0);
     }
-    return value;
+    return Array.isArray(value) ? value : [];
   })
   @IsArray()
   @IsString({ each: true })
@@ -30,4 +30,3 @@ export class GetStocksDto {
   })
   end: string;
 }
-
