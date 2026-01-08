@@ -147,10 +147,26 @@ export class StocksService {
       referenceDates = eachDayOfInterval({ start, end });
     }
 
-    // Format dates to YYYY-MM-DD
-    const formattedDates = referenceDates.map((date) =>
-      format(date, 'yyyy-MM-dd'),
-    );
+    // Format dates to YYYY-MM-DD and filter to only include dates within [startDate, endDate]
+    const formattedDates = referenceDates
+      .map((date) => format(date, 'yyyy-MM-dd'))
+      .filter((date) => date >= startDate && date <= endDate);
+
+    // Create a Set to ensure uniqueness and add startDate and endDate if not present
+    const dateSet = new Set<string>(formattedDates);
+
+    // Add startDate if it's not already present
+    if (!dateSet.has(startDate)) {
+      dateSet.add(startDate);
+    }
+
+    // Add endDate if it's not already present
+    if (!dateSet.has(endDate)) {
+      dateSet.add(endDate);
+    }
+
+    // Convert to array and sort chronologically
+    const allDates = Array.from(dateSet).sort((a, b) => a.localeCompare(b));
 
     // Create a Map to index API data by date for quick access
     // Map<date, Map<symbol, value>>
@@ -189,12 +205,12 @@ export class StocksService {
 
     // Initialize result map with all reference dates
     const resultMap = new Map<string, StockDataPoint>();
-    formattedDates.forEach((date) => {
+    allDates.forEach((date) => {
       resultMap.set(date, { date });
     });
 
     // For each reference date, check if API has a value for this exact date
-    formattedDates.forEach((date) => {
+    allDates.forEach((date) => {
       const dataPoint = resultMap.get(date)!;
       const apiValues = apiDataMap.get(date);
 
@@ -210,10 +226,27 @@ export class StocksService {
       // If no API data for this date, leave undefined temporarily (will be filled with forward fill)
     });
 
+    // Find first known value for each symbol (for backward fill)
+    const firstKnownValues = new Map<string, number>();
+    allDates.forEach((date) => {
+      const dataPoint = resultMap.get(date)!;
+      symbols.forEach((symbol) => {
+        const currentValue = dataPoint[symbol];
+        if (
+          currentValue !== undefined &&
+          typeof currentValue === 'number' &&
+          !firstKnownValues.has(symbol)
+        ) {
+          firstKnownValues.set(symbol, currentValue);
+        }
+      });
+    });
+
     // Apply forward fill: for each date without value, use the last known value
+    // Also apply backward fill: for dates before first value, use first known value
     const lastKnownValues = new Map<string, number>();
 
-    formattedDates.forEach((date) => {
+    allDates.forEach((date) => {
       const dataPoint = resultMap.get(date)!;
 
       symbols.forEach((symbol) => {
@@ -221,19 +254,28 @@ export class StocksService {
         if (currentValue !== undefined && typeof currentValue === 'number') {
           // Update last known value for this symbol
           lastKnownValues.set(symbol, currentValue);
-        } else if (lastKnownValues.has(symbol)) {
-          // Apply forward fill: use last known value (last trading day)
-          const lastValue = lastKnownValues.get(symbol);
-          if (lastValue !== undefined) {
-            dataPoint[symbol] = lastValue;
+        } else {
+          // No value for this date, try to fill it
+          if (lastKnownValues.has(symbol)) {
+            // Apply forward fill: use last known value (last trading day)
+            const lastValue = lastKnownValues.get(symbol);
+            if (lastValue !== undefined) {
+              dataPoint[symbol] = lastValue;
+            }
+          } else if (firstKnownValues.has(symbol)) {
+            // Apply backward fill: use first known value for dates before first available data
+            const firstValue = firstKnownValues.get(symbol);
+            if (firstValue !== undefined) {
+              dataPoint[symbol] = firstValue;
+            }
           }
+          // If no value exists at all, leave it undefined (will be omitted in JSON)
         }
-        // If no last known value exists, leave it undefined (will be omitted in JSON)
       });
     });
 
     // Return sorted array (already sorted by date)
-    return formattedDates.map((date) => resultMap.get(date)!);
+    return allDates.map((date) => resultMap.get(date)!);
   }
 
   /**
