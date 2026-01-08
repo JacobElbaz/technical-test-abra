@@ -31,6 +31,17 @@
 $ npm install
 ```
 
+## Environment Configuration
+
+Create a `.env` file in the backend directory with the following variables:
+
+```env
+TWELVE_DATA_API_KEY=your_api_key_here
+PORT=3000
+```
+
+Get your free API key at [https://twelvedata.com/](https://twelvedata.com/)
+
 ## Compile and run the project
 
 ```bash
