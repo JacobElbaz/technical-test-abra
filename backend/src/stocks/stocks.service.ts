@@ -64,6 +64,33 @@ export class StocksService {
   }
 
   /**
+   * Generate all dates between startDate and endDate (inclusive)
+   */
+  private generateDateRange(startDate: string, endDate: string): string[] {
+    const dates: string[] = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Set time to midnight to avoid timezone issues
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+
+    const currentDate = new Date(start);
+    
+    while (currentDate <= end) {
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDate.getDate()).padStart(2, '0');
+      dates.push(`${year}-${month}-${day}`);
+      
+      // Move to next day
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return dates;
+  }
+
+  /**
    * Fetch stock data from Twelve Data API
    */
   private async fetchStockData(
@@ -115,12 +142,26 @@ export class StocksService {
 
   /**
    * Merge stock data by date for Recharts format
+   * Generates all dates in the range and applies forward fill for missing dates
    */
   private mergeStockData(
     stocksData: Array<{ symbol: string; data: TwelveDataResponse }>,
+    startDate: string,
+    endDate: string,
   ): StockDataPoint[] {
+    // Generate all dates in the range
+    const allDates = this.generateDateRange(startDate, endDate);
     const dateMap = new Map<string, StockDataPoint>();
 
+    // Initialize all dates in the range
+    allDates.forEach((date) => {
+      dateMap.set(date, { date });
+    });
+
+    // Extract symbols from stocksData
+    const symbols = stocksData.map(({ symbol }) => symbol);
+
+    // Fill in data from API responses
     stocksData.forEach(({ symbol, data }) => {
       if (data.values && Array.isArray(data.values)) {
         data.values.forEach((value) => {
@@ -135,24 +176,48 @@ export class StocksService {
             return;
           }
 
-          if (!dateMap.has(date)) {
-            dateMap.set(date, { date });
-          }
-
-          const closePrice = parseFloat(value.close);
-          if (!isNaN(closePrice)) {
-            dateMap.get(date)![symbol] = closePrice;
+          // Only process dates within our range
+          if (dateMap.has(date)) {
+            const closePrice = parseFloat(value.close);
+            if (!isNaN(closePrice)) {
+              dateMap.get(date)![symbol] = closePrice;
+            }
           }
         });
       }
     });
 
-    // Sort by date in ascending order (oldest to newest)
-    // Twelve Data API returns data in descending order (newest to oldest),
-    // so we need to sort to ensure the chart displays correctly
-    return Array.from(dateMap.values()).sort((a, b) =>
-      a.date.localeCompare(b.date),
+    // Apply forward fill: for each date without data, use the last known value
+    const sortedDates = Array.from(dateMap.keys()).sort((a, b) =>
+      a.localeCompare(b),
     );
+
+    // Track last known value for each symbol
+    const lastKnownValues = new Map<string, number>();
+
+    sortedDates.forEach((date) => {
+      const dataPoint = dateMap.get(date)!;
+
+      symbols.forEach((symbol) => {
+        if (
+          dataPoint[symbol] !== undefined &&
+          typeof dataPoint[symbol] === 'number'
+        ) {
+          // Update last known value for this symbol
+          lastKnownValues.set(symbol, dataPoint[symbol] as number);
+        } else if (lastKnownValues.has(symbol)) {
+          // Apply forward fill: use last known value
+          const lastValue = lastKnownValues.get(symbol);
+          if (lastValue !== undefined) {
+            dataPoint[symbol] = lastValue;
+          }
+        }
+        // If no last known value exists, leave it undefined (will be omitted in JSON)
+      });
+    });
+
+    // Return sorted array (already sorted by date)
+    return sortedDates.map((date) => dateMap.get(date)!);
   }
 
   /**
@@ -179,8 +244,8 @@ export class StocksService {
     try {
       const stocksData = await Promise.all(fetchPromises);
 
-      // Merge data by date
-      return this.mergeStockData(stocksData);
+      // Merge data by date with forward fill for missing dates
+      return this.mergeStockData(stocksData, startDate, endDate);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
